@@ -18,7 +18,9 @@ export class Network {
      * }
      * ``
      */
-    protected headers: Record<string, string> = {}
+    protected get headers(): Record<string, string> {
+        return {}
+    }
     /**
      * @override point you shoud overwrite this property and provide you custom headers
      * @example 
@@ -28,7 +30,9 @@ export class Network {
      * }
      * ``
      */
-    protected method: Network.Method = 'POST'
+    protected get method(): Network.Method {
+        return 'POST'
+    }
     /**
      * @description resove relative uri to full url
      * @param path the relative uri
@@ -691,7 +695,17 @@ export namespace orm {
         if (!clskey || !id) return null
         return `${clskey}.${id}`
     }
-
+    function getItem(key: string) {
+        const str = localStorage.getItem(key)
+        return str && JSON.parse(str)
+    }
+    function setItem(key: string, value: any) {
+        const str = value && JSON.stringify(value)
+        localStorage.setItem(key, str)
+    }
+    function removeItem(key: string) {
+        localStorage.removeItem(key)
+    }
     /**
      * @description  A class decorate use to store class.
      * @param clsname the class name of your storage class
@@ -733,10 +747,10 @@ export namespace orm {
         const clskey = getClskey(model.constructor)
         const idxkey = getIdxkey(model.constructor)
         const objkey = getObjkey(clskey, model[idxkey])
-        const keys: any = localStorage.getItem(clskey) || {}
+        const keys: any = getItem(clskey) || {}
         keys[objkey] = ''
-        localStorage.setItem(clskey, JSON.stringify(keys))
-        localStorage.setItem(objkey, JSON.stringify(model))
+        setItem(clskey, keys)
+        setItem(objkey, model)
     }
     /**
      * @description find an storaged object whith id.
@@ -747,10 +761,7 @@ export namespace orm {
     export const find = <T>(cls: IMetaClass<T>, id: string | number): T | undefined => {
         const clskey = getClskey(cls)
         const objkey = getObjkey(clskey, id)
-        const objstr = localStorage.getItem(objkey)
-        if (objstr) {
-            return awake(cls, JSON.parse(objstr))
-        }
+        return awake(cls, getItem(objkey))
     }
     /**
      * @description find all storaged object's primary key of cls.
@@ -759,11 +770,8 @@ export namespace orm {
      */
     export const ids = <T>(cls: IMetaClass<T>): string[] => {
         const clskey = getClskey(cls)
-        const clsstr = localStorage.getItem(clskey)
-        if (clsstr) {
-            return Object.keys(JSON.parse(clsstr))
-        }
-        return []
+        const keys = getItem(clskey)
+        return keys ? Object.keys(keys) : []
     }
     /**
      * @description find all storaged object of cls.
@@ -774,9 +782,9 @@ export namespace orm {
         const keys = ids(cls)
         const result: T[] = []
         for (const key of keys) {
-            const objstr = localStorage.getItem(key)
-            if (objstr) {
-                result.push(awake(cls, JSON.parse(objstr)))
+            const obj = awake(cls, getItem(key))
+            if (obj) {
+                result.push(obj)
             }
         }
         return result;
@@ -797,14 +805,13 @@ export namespace orm {
      */
     export const clear = <T>(cls: IMetaClass<T>) => {
         const clskey = getClskey(cls)
-        const clsstr = localStorage.getItem(clskey)
-        if (clsstr) {
-            const keys = JSON.parse(clsstr)
+        const keys = getItem(clskey)
+        if (keys) {
             for (const key in keys) {
-                localStorage.removeItem(key)
+                removeItem(key)
             }
         }
-        localStorage.removeItem(clskey)
+        removeItem(clskey)
     }
     /**
      * @description remove an special storaged object of cls.
@@ -815,11 +822,11 @@ export namespace orm {
     export const remove = <T>(cls: IMetaClass<T>, id: string | number) => {
         const clskey = getClskey(cls)
         const objkey = getObjkey(clskey, id)
-        const keystr: any = localStorage.getItem(clskey)
-        if (!keystr) return
-        const keys = JSON.parse(keystr)
-        delete keys[objkey]
-        localStorage.removeItem(objkey)
-        localStorage.setItem(clskey, keys)
+        const keys = getItem(clskey)
+        if (keys && keys[objkey]) {
+            delete keys[objkey]
+            removeItem(objkey)
+            setItem(clskey, keys)
+        }
     }
 }

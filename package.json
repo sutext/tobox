@@ -1,6 +1,6 @@
 {
     "name": "tobox",
-    "version": "1.1.4",
+    "version": "1.1.8",
     "description": "tool box for web devlopment",
     "main": "index.js",
     "files": [
